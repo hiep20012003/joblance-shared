@@ -15,16 +15,21 @@ export { } from './search.interface';
 export { } from './seller.interface';
 export { uploads, videoUpload } from './cloudinary-upload';
 export {
-  IErrorResponse,
   IError,
   CustomError,
   BadRequestError,
+  ValidationError,
+  ConflictError,
+  TooManyRequestsError,
   NotFoundError,
+  ForbiddenError,
   NotAuthorizedError,
+  UnauthorizedTokenError,
   FileTooLargeError,
   ServerError,
-  ErrnoException,
+  DependencyError,
+  DatabaseError,
 } from './error-handler';
 export { verifyGatewayRequest } from './gateway-middleware';
-export { createLogger } from './logger';
+export { Logger } from './logger';
 export { firstLetterUppercase, isEmail, isDataURL } from './helpers';
