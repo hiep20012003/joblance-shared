@@ -8,14 +8,14 @@ import { CustomError } from './error-handler';
 export class Logger {
   private logger: pino.Logger;
   private logDir: string;
-
   /**
    * Initializes a new Logger instance for a given service.
    * @param serviceName - The name of the service using this logger.
    */
   constructor(private serviceName: string) {
     const isProd = process.env.ENVIRONMENT === 'production';
-    this.logDir = isProd ? this.initLogDirectory() : '';
+    // this.logDir = isProd ? this.initLogDirectory() : '';
+    this.logDir = this.initLogDirectory();
     const logFilePath = path.join(this.logDir, `${serviceName}.log`);
 
     // Configure pino transport based on environment
@@ -40,8 +40,14 @@ export class Logger {
               },
               level: 'debug',
             },
+            {
+              target: 'pino/file',
+              options: { destination: logFilePath, mkdir: true },
+              level: 'info',
+            },
           ],
-        });
+        },
+      );
 
     // Create the pino logger instance
     this.logger = pino(
@@ -56,6 +62,14 @@ export class Logger {
       },
       transport
     );
+  }
+
+  /**
+   * Gets the name of the service associated with this logger.
+   * @returns The service name.
+   */
+  public getServiceName(): string {
+    return this.serviceName;
   }
 
   /**
@@ -139,5 +153,16 @@ export class Logger {
       user: userId ? { id: userId } : undefined,
     });
   }
+
+    /**
+   * Creates a child logger with additional context.
+   * Useful for request-scoped or module-specific logging.
+   * @param context - Additional metadata to include in all log entries from this child
+   * @returns A new pino.Logger instance with merged context
+   */
+  child(context: Record<string, any>): pino.Logger {
+    return this.logger.child(context);
+  }
+
 }
 

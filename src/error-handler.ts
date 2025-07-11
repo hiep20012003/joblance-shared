@@ -51,7 +51,7 @@ export class BadRequestError extends CustomError {
   constructor(
     message: string = 'Bad request',
     comingFrom: string = 'Unknown',
-    errorCode?: string
+    errorCode: string = 'BAD_REQUEST'
   ) {
     super(message, comingFrom, errorCode);
   }
@@ -64,7 +64,7 @@ export class ValidationError extends CustomError {
   constructor(
     message: string = 'Validation failed',
     comingFrom: string = 'Unknown',
-    errorCode = 'VALIDATION_ERROR'
+    errorCode: string = 'VALIDATION_ERROR'
   ) {
     super(message, comingFrom, errorCode);
   }
@@ -77,7 +77,7 @@ export class ConflictError extends CustomError {
   constructor(
     message: string = 'Resource conflict',
     comingFrom: string = 'Unknown',
-    errorCode = 'RESOURCE_CONFLICT'
+    errorCode: string = 'RESOURCE_CONFLICT'
   ) {
     super(message, comingFrom, errorCode);
   }
@@ -90,7 +90,7 @@ export class TooManyRequestsError extends CustomError {
   constructor(
     message: string = 'Too many requests',
     comingFrom: string = 'Unknown',
-    errorCode = 'TOO_MANY_REQUESTS'
+    errorCode: string = 'TOO_MANY_REQUESTS'
   ) {
     super(message, comingFrom, errorCode);
   }
@@ -103,7 +103,7 @@ export class NotFoundError extends CustomError {
   constructor(
     message: string = 'Resource not found',
     comingFrom: string = 'Unknown',
-    errorCode?: string
+    errorCode: string = 'NOT_FOUND'
   ) {
     super(message, comingFrom, errorCode);
   }
@@ -116,7 +116,7 @@ export class ForbiddenError extends CustomError {
   constructor(
     message: string = 'Access forbidden',
     comingFrom: string = 'Unknown',
-    errorCode?: string
+    errorCode: string = 'FORBIDDEN'
   ) {
     super(message, comingFrom, errorCode);
   }
@@ -129,7 +129,7 @@ export class NotAuthorizedError extends CustomError {
   constructor(
     message: string = 'Unauthorized access',
     comingFrom: string = 'Unknown',
-    errorCode?: string
+    errorCode: string = 'UNAUTHORIZED'
   ) {
     super(message, comingFrom, errorCode);
   }
@@ -142,7 +142,7 @@ export class UnauthorizedTokenError extends CustomError {
   constructor(
     message: string = 'Invalid or expired token',
     comingFrom: string = 'AuthMiddleware',
-    errorCode = 'TOKEN_INVALID'
+    errorCode: string = 'TOKEN_INVALID'
   ) {
     super(message, comingFrom, errorCode);
   }
@@ -155,7 +155,7 @@ export class FileTooLargeError extends CustomError {
   constructor(
     message: string = 'File size too large',
     comingFrom: string = 'Unknown',
-    errorCode?: string
+    errorCode: string = 'FILE_TOO_LARGE'
   ) {
     super(message, comingFrom, errorCode);
   }
@@ -170,7 +170,7 @@ export class ServerError extends CustomError {
   constructor(
     message: string = 'Internal server error',
     comingFrom: string = 'Unknown',
-    errorCode?: string
+    errorCode: string = 'INTERNAL_SERVER_ERROR'
   ) {
     super(message, comingFrom, errorCode);
   }
@@ -183,7 +183,7 @@ export class DependencyError extends CustomError {
   constructor(
     message: string = 'External dependency unavailable',
     comingFrom: string = 'Unknown',
-    errorCode = 'DEPENDENCY_UNAVAILABLE'
+    errorCode: string = 'DEPENDENCY_UNAVAILABLE'
   ) {
     super(message, comingFrom, errorCode);
   }
@@ -196,7 +196,20 @@ export class DatabaseError extends CustomError {
   constructor(
     message: string = 'Database operation failed',
     comingFrom: string = 'DatabaseService',
-    errorCode = 'DB_ERROR'
+    errorCode: string = 'DB_ERROR'
+  ) {
+    super(message, comingFrom, errorCode);
+  }
+}
+
+export class TooManyRetriesError extends CustomError {
+  statusCode = StatusCodes.TOO_MANY_REQUESTS;
+  status: 'fail' = 'fail';
+
+  constructor(
+    message: string = 'Message failed after max retries',
+    comingFrom: string = 'MessageConsumer',
+    errorCode: string = 'MAX_RETRY_REACHED'
   ) {
     super(message, comingFrom, errorCode);
   }

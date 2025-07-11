@@ -29,7 +29,8 @@ export {
   ServerError,
   DependencyError,
   DatabaseError,
+  TooManyRetriesError
 } from './error-handler';
-export { verifyGatewayRequest } from './gateway-middleware';
+export { verifyGatewayRequest, errorHandler } from './middleware';
 export { Logger } from './logger';
 export { firstLetterUppercase, isEmail, isDataURL } from './helpers';
