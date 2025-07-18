@@ -7,7 +7,7 @@ export function uploads(
   invalidate?: boolean
 ): Promise<UploadApiResponse | UploadApiErrorResponse | undefined> {
   return new Promise((resolve) => {
-    cloudinary.v2.uploader.upload(
+    void cloudinary.v2.uploader.upload(
       file,
       {
         public_id,
@@ -30,7 +30,7 @@ export function videoUpload(
   invalidate?: boolean
 ): Promise<UploadApiResponse | UploadApiErrorResponse | undefined> {
   return new Promise((resolve) => {
-    cloudinary.v2.uploader.upload(
+    void cloudinary.v2.uploader.upload(
       file,
       {
         public_id,
