@@ -159,6 +159,7 @@ export class Logger {
 
     const traceId = req?.traceContext?.traceId ?? 'unknown';
     const clientId = req?.headers['x-forwarded-for']?.toString().split(',')[0] || req?.ip || 'unknown';
+    const clientId = req?.headers['x-forwarded-for']?.toString().split(',')[0] || req?.ip || 'unknown';
     const url = req?.originalUrl;
     const method = req?.method;
 
