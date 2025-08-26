@@ -83,7 +83,10 @@ export class Logger {
         }),
         format.json()
       ),
-      defaultMeta: { service: this.serviceName },
+      defaultMeta: {
+        service: this.serviceName,
+        env: process.env.NODE_ENV || 'development'
+      },
       transports: [
         new winston.transports.Console({
           format: consoleFormat
@@ -155,7 +158,7 @@ export class Logger {
     const cleanedError = this.cleanError(error);
 
     const traceId = req?.traceContext?.traceId ?? 'unknown';
-    const clientId = req?.ip ?? 'unknown';
+    const clientId = req?.headers['x-forwarded-for']?.toString().split(',')[0] || req?.ip || 'unknown';
     const url = req?.originalUrl;
     const method = req?.method;
 
