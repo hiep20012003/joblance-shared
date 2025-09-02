@@ -1,43 +1,32 @@
 import { EmailTemplate } from '../../integrations/email/email';
 
-export type EmailTemplateContext =
-  | VerifyEmailTemplateContext
-  | ResetPasswordTemplateContext
-  | WelcomeEmailTemplateContext;
+export type IEmailTemplateContext =
+  | IVerifyEmailTemplateContext
+  | IResetPasswordTemplateContext
+  | IWelcomeEmailTemplateContext;
 
-export interface IEmailMessage {
-  to: string,
-  template: EmailTemplate
-}
-
-export interface AuthEmailMessage extends IEmailMessage {
-  username: string,
-  verificationLink?: string,
-  resetLink?: string,
-}
-
-export interface EmailPayload {
+export interface IEmailPayload {
   to: string;
   subject: string;
   template: EmailTemplate;
-  context: EmailTemplateContext;
+  context: IEmailTemplateContext;
 }
 
-export interface BaseTemplateContext {
+export interface IBaseTemplateContext {
   appLink: string,
   appIcon: string
 }
 
-export interface VerifyEmailTemplateContext extends BaseTemplateContext {
+export interface IVerifyEmailTemplateContext extends IBaseTemplateContext {
   username: string;
   verificationLink: string;
 }
 
-export interface ResetPasswordTemplateContext extends BaseTemplateContext {
+export interface IResetPasswordTemplateContext extends IBaseTemplateContext {
   username: string;
   resetLink: string;
 }
 
-export interface WelcomeEmailTemplateContext extends BaseTemplateContext {
+export interface IWelcomeEmailTemplateContext extends IBaseTemplateContext {
   username: string;
 }

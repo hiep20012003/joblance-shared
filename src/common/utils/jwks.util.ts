@@ -1,7 +1,7 @@
 import axios, { AxiosResponse } from 'axios';
 
 import { JwksResponse, JwtConfig } from '../types';
-import { CacheClient } from '../../redis';
+import { CacheClient } from '../../core/redis';
 import { ServerError } from '../../core';
 
 

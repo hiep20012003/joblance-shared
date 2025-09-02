@@ -39,40 +39,35 @@ export class Logger {
         clientId,
         url,
         method
-      } = info as {
-        level: string;
-        message: string;
-        timestamp: string;
-        metadata?: Record<string, unknown>;
-        context?: unknown;
-        error?: unknown;
-        operation?: string;
-        traceId?: string;
-        clientId?: string;
-        url?: string;
-        method?: string;
-        [key: string]: unknown;
-      };
+      } = info as any;
 
-      const coloredTimestampAndLevel = colorizer.colorize(level, `${timestamp} [${level.toUpperCase()}]:`);
+      const coloredTimestampAndLevel = colorizer.colorize(
+        level,
+        `${timestamp} [${level.toUpperCase()}]:`
+      );
+
+      const messageStr =
+        typeof message === "string"
+          ? message
+          : util.inspect(message, { colors: true, depth: null, compact: false });
 
       const objectsToLog = this.cleanObject({
-        // operation,
-        // traceId,
-        // clientId,
         url,
         method,
         metadata,
         context,
-        error
+        error,
+        operation,
+        traceId,
+        clientId
       });
 
       const syntaxHighlightedObjects =
-    objectsToLog && Object.keys(objectsToLog).length > 0
-      ? '\n' + util.inspect(objectsToLog, { colors: true, depth: null, compact: false })
-      : '';
+        objectsToLog && Object.keys(objectsToLog).length > 0
+          ? "\n" + util.inspect(objectsToLog, { colors: true, depth: null, compact: false })
+          : "";
 
-      return `${coloredTimestampAndLevel} ${message}${syntaxHighlightedObjects}`;
+      return `${coloredTimestampAndLevel} ${messageStr}${syntaxHighlightedObjects}`;
     });
 
 

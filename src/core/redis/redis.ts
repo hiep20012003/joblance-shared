@@ -1,8 +1,8 @@
 import Redis from 'ioredis';
 
 
-import { Logger } from '../core/logging';
-import { ServerError } from '../core';
+import { Logger } from '../logging';
+import { ServerError } from '..';
 
 import type { Redis as RedisType } from 'ioredis';
 

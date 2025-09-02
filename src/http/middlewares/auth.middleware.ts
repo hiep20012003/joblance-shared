@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
 import { UnauthorizedError } from '../../core';
-import { CacheClient } from '../../redis';
+import { CacheClient } from '../../core/redis';
 import { JwtConfig } from '../../common';
 import { getPublicKeysFromJwks, verifyJwtToken } from '../../common/utils';
 
