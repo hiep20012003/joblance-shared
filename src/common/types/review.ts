@@ -1,6 +1,7 @@
 import { MessageQueueType } from "../../core";
 
 export interface IReviewMessage {
+  type: MessageQueueType;
   gigId?: string;
   reviewerId?: string;
   sellerId?: string;
@@ -8,11 +9,29 @@ export interface IReviewMessage {
   rating?: number;
   orderId?: string;
   createdAt?: string;
-  type: MessageQueueType;
 }
 
 export interface IRatingTypes {
   [key: string]: string;
+}
+
+export interface IReviewerObjectKeys {
+  [key: string]: string | number | Date | undefined;
+}
+
+export interface IReviewDocument {
+  _id?: string;
+  gigId: string;
+  reviewerId: string;
+  sellerId: string;
+  review: string;
+  reviewerImage: string;
+  rating: number;
+  orderId: string;
+  createdAt: Date | string;
+  reviewerUsername: string;
+  country: string;
+  reviewType?: MessageQueueType;
 }
 
 export interface IRatingCategoryItem {
