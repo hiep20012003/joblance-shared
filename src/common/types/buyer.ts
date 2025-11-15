@@ -1,10 +1,13 @@
-import { ObjectId } from 'mongoose';
-import { MessageQueueType } from '../../core';
+import {ObjectId} from 'mongoose';
+import {MessageQueueType} from '../constants/constants';
+
 export interface IBuyerDocument {
   _id?: string | ObjectId;
   username?: string;
   email?: string;
   profilePicture?: string;
+  profilePublicId?: string;
+  sex?: string;
   country?: string;
   isSeller?: boolean;
   purchasedGigs: string[];
@@ -12,13 +15,15 @@ export interface IBuyerDocument {
   updatedAt?: Date | string;
 }
 
-export interface IBuyerMessage{
+export interface IBuyerMessageQueue {
   type?: MessageQueueType;
   purchasedGigId?: string;
   buyerId?: string;
   username?: string;
   email?: string;
+  sex?: string;
   profilePicture?: string;
   country?: string;
   isSeller?: boolean;
 }
+

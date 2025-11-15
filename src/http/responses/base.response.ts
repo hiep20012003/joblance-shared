@@ -1,24 +1,26 @@
-
-export interface ResponseOptions<M=unknown, E=unknown> {
-  message: string;
+export interface ResponseOptions<M = unknown, E = unknown> {
+  message?: string;
   statusCode: number;
-  reasonPhrase: string;
-  metadata?: M;
+  errorCode?: string;
+  reasonPhrase?: string;
   error?: E;
+  data?: M;
 }
 
 export abstract class ApplicationResponse {
-  message: string;
+  message: string | undefined;
   statusCode: number;
-  reasonPhrase: string;
-  metadata: unknown;
+  errorCode: string | undefined;
+  reasonPhrase: string | undefined;
   error: unknown;
+  data: unknown;
 
-  constructor({ message, statusCode, reasonPhrase, metadata, error }: ResponseOptions) {
+  protected constructor({message, statusCode, errorCode, reasonPhrase, data, error}: ResponseOptions) {
     this.message = message;
     this.statusCode = statusCode;
+    this.errorCode = errorCode;
     this.reasonPhrase = reasonPhrase;
-    this.metadata = metadata;
+    this.data = data;
     this.error = error;
   }
 }

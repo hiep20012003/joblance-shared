@@ -1,47 +1,28 @@
-import { ServerError } from "../errors";
-import amqp, { Channel, ConsumeMessage, ChannelModel } from "amqplib";
-import { MessageQueueType } from "./message-queue-type";
+import {ServerError} from "../errors";
+import amqp, {Channel, ConsumeMessage, ChannelModel} from "amqplib";
+import {ConsumeOptions, PublishOptions, SetupRetryQueueOptions, ExchangeType} from "../../common";
+import {v4 as uuidv4} from "uuid";
 
-export enum ExchangeType {
-  Direct = "direct",
-  Topic = "topic",
-  Fanout = "fanout",
-  Headers = "headers"
-}
-
-interface ConsumerOptions<T = any> {
-  channelName: string;
-  exchange: string;
-  queue: string;
-  routingKey: string;
-  handler: (data: T) => Promise<void>;
-  handlerRetryError?: (operation: string, context: unknown) => void
-  maxRetries?: number;
-  exchangeType?: ExchangeType;
-  headers?: Record<string, any>
-}
-
-export class MessageQueue  {
+export class MessageQueue {
   private static instance: MessageQueue;
   private connection!: ChannelModel;
   private channels: Map<string, Channel> = new Map();
 
-  private constructor(private url: string){
+  private constructor(private url: string) {
   }
 
-  public static getInstance(url: string) : MessageQueue {
+  public static getInstance(url: string): MessageQueue {
     if (!MessageQueue.instance) {
       MessageQueue.instance = new MessageQueue(url);
     }
     return MessageQueue.instance;
   }
 
-
- public async connect(): Promise<void>{
+  public async connect(): Promise<void> {
     try {
       if (!this.connection) {
-      this.connection = await amqp.connect(`${this.url}`);
-    }
+        this.connection = await amqp.connect(`${this.url}`);
+      }
     } catch (error) {
       throw new ServerError({
         logMessage: 'Failed to establish RabbitMQ connection',
@@ -66,73 +47,64 @@ export class MessageQueue  {
     }
   }
 
-  private async setupRetryQueue(
-    channel: Channel,
-    baseQueueName: string,
-    routingKey: string,
-    mainExchange: string,
-    exchangeType: ExchangeType,
-    headerBindings: Record<string, any> = {}
-  ) {
-    const baseQueue = `${baseQueueName}.queue`;
-    const retryQueue = `${baseQueueName}.retry.queue`;
-    const deadQueue = `${baseQueueName}.dead.queue`;
+  public async setupRetryQueue(options: SetupRetryQueueOptions) {
+    const {
+      channel,
+      queue,
+      routingKey,
+      exchange,
+      exchangeType,
+      headers = {},
+      retryTtl = 10000,
+    } = options;
 
-    const retryRoutingKey = `${routingKey}.retry`;
-    const deadRoutingKey = `${routingKey}.dead`;
+    const baseQueue = `${queue}.queue`;
+    const retryQueue = `${queue}.retry.queue`;
+    const deadQueue = `${queue}.dead.queue`;
 
-    const retryExchange = `${mainExchange}.retry`;
-    const deadExchange = `${mainExchange}.dead`;
+    const retryExchange = `${exchange}.${queue}.retry`;
+    const deadExchange = `${exchange}.${queue}.dead`;
 
-    // Main exchange
-    await channel.assertExchange(mainExchange, exchangeType, { durable: true });
+    await channel.assertExchange(exchange, exchangeType, {durable: true});
+    await channel.assertExchange(retryExchange, "direct", {durable: true});
+    await channel.assertExchange(deadExchange, "direct", {durable: true});
 
-    // Retry & Dead exchanges
-    await channel.assertExchange(retryExchange, "direct", { durable: true });
-    await channel.assertExchange(deadExchange, "direct", { durable: true });
-
-    // Main queue
     await channel.assertQueue(baseQueue, {
       durable: true,
       arguments: {
         "x-dead-letter-exchange": retryExchange,
-        "x-dead-letter-routing-key": retryRoutingKey,
+        "x-dead-letter-routing-key": "retry",
       },
     });
 
-    // Retry queue
     await channel.assertQueue(retryQueue, {
       durable: true,
       arguments: {
-        "x-message-ttl": 10000,
-        "x-dead-letter-exchange": mainExchange,
+        "x-message-ttl": retryTtl,
+        "x-dead-letter-exchange": exchange,
         "x-dead-letter-routing-key": routingKey,
       },
     });
 
-    // Dead queue
-    await channel.assertQueue(deadQueue, { durable: true });
+    await channel.assertQueue(deadQueue, {durable: true});
 
     switch (exchangeType) {
-      case "fanout":
-        await channel.bindQueue(baseQueue, mainExchange, "");
+      case ExchangeType.Fanout:
+        await channel.bindQueue(baseQueue, exchange, "");
         break;
-      case "headers":
-        await channel.bindQueue(baseQueue, mainExchange, "", {...headerBindings});
+      case ExchangeType.Headers:
+        await channel.bindQueue(baseQueue, exchange, "", {...headers});
         break;
-      case "topic":
-      case "direct":
+      case ExchangeType.Topic:
+      case ExchangeType.Direct:
       default:
-        await channel.bindQueue(baseQueue, mainExchange, routingKey);
+        await channel.bindQueue(baseQueue, exchange, routingKey);
         break;
     }
 
-    // Retry & dead exchanges
-    await channel.bindQueue(retryQueue, retryExchange, retryRoutingKey);
-    await channel.bindQueue(deadQueue, deadExchange, deadRoutingKey);
+    await channel.bindQueue(retryQueue, retryExchange, "retry");
+    await channel.bindQueue(deadQueue, deadExchange, "dead");
   }
-
-
 
   public async createChannel(name: string): Promise<Channel> {
     try {
@@ -148,6 +120,7 @@ export class MessageQueue  {
       }
 
       const channel = await this.connection.createChannel();
+      await channel.prefetch(1);
       this.channels.set(name, channel);
       return channel;
     } catch (error) {
@@ -159,26 +132,12 @@ export class MessageQueue  {
     }
   }
 
-  public async publish(
-    channelName: string,
-    exchange: string,
-    routingKey: string,
-    message: string,
-    exchangeType: ExchangeType,
-    headers?: Record<string, any>
-  ) {
+  public async publish(options: PublishOptions) {
+    const {channelName, exchange, routingKey = "", message, headers} = options;
     try {
       const channel = await this.createChannel(channelName);
-      await channel.assertExchange(exchange, exchangeType, { durable: true });
 
-      const options: any = { persistent: true };
-      if (exchangeType === "headers" && headers) {
-        options.headers = headers;
-      }
-
-      const rk = exchangeType === "fanout" ? "" : routingKey;
-
-      channel.publish(exchange, rk, Buffer.from(message), options);
+      channel.publish(exchange, routingKey, Buffer.from(message), {headers, messageId: uuidv4()});
     } catch (error) {
       throw new ServerError({
         logMessage: `Failed to publish message to exchange "${exchange}" with routingKey "${routingKey}"`,
@@ -188,74 +147,70 @@ export class MessageQueue  {
     }
   }
 
-  public async consume<T = any>({
-    channelName,
-    exchange,
-    queue,
-    routingKey,
-    handler,
-    handlerRetryError,
-    maxRetries = 3,
-    exchangeType = ExchangeType.Direct,
-    headers = {}
-  }: ConsumerOptions<T>): Promise<void> {
+  public async consume<T = any>(options: ConsumeOptions<T>) {
+    const {
+      channelName,
+      queue,
+      exchange,
+      handler,
+      maxRetries = 3,
+      handlerRetryError,
+    } = options;
+
     const queueName = `${queue}.queue`;
 
     try {
       const channel = await this.createChannel(channelName);
 
-      // Setup queues + retry
-      await this.setupRetryQueue(channel, queue, routingKey, exchange, exchangeType, headers);
+      channel.consume(queueName, async (msg: ConsumeMessage | null) => {
+        if (!msg) return;
 
-      channel.consume(queueName, (msg: ConsumeMessage | null) => {
-        void (async () => {
-          if (!msg) return;
+        const content = msg.content.toString();
+        const headers = msg.properties.headers ?? {};
+        const deaths = headers["x-death"] as { count: number }[] | undefined;
+        const retryCount = deaths?.[0]?.count ?? 0;
 
-          let errors;
-          try {
-            const data = JSON.parse(msg.content.toString());
-            await handler(data);
+        const messageId = msg.properties.messageId ?? "unknown";
+
+        try {
+          const data = JSON.parse(content);
+          await handler({...data, messageId});
+
+          channel.ack(msg);
+        } catch (error) {
+          const errors = (error as Error).message;
+
+          if (retryCount >= maxRetries) {
+            // Gửi sang deadExchange
+            channel.publish(
+              `${exchange}.${queue}.dead`,
+              "dead",
+              Buffer.from(content),
+              {headers}
+            );
             channel.ack(msg);
-          } catch (error) {
-            errors = (error as Error).toString();
-            const content = msg.content.toString();
-            const msgHeaders = msg.properties.headers ?? {};
-            const deaths = msgHeaders["x-death"] as { count: number }[] | undefined;
-            const retryCount = deaths?.[0]?.count || 0;
 
-            const messageId: string = (msg.properties.messageId as string) ?? "unknown-id";
-
-            if (retryCount >= maxRetries) {
-              channel.publish(
-                `${exchange}.dead`,
-                `${routingKey}.dead`,
-                Buffer.from(content),
-                { headers: msgHeaders }
-              );
-              channel.ack(msg);
-
-              if (handlerRetryError)
-                handlerRetryError("consume-retry-limit", {
-                  queue: queueName,
-                  routingKey,
-                  messageId,
-                  maxRetries,
-                  errors,
-                });
-            } else {
-              channel.nack(msg, false, false);
-            }
+            handlerRetryError?.("consume-retry-limit", {
+              queue: queueName,
+              messageId,
+              maxRetries,
+              errors,
+            });
+          } else {
+            console.debug('Retrying...');
+            channel.nack(msg, false, false);
           }
-        })();
+        }
       });
     } catch (error) {
       throw new ServerError({
         logMessage: `Failed to start consumer`,
         cause: error,
         operation: "consumer-setup-failed",
-        context: { queue: queueName },
+        context: {queue: queueName},
       });
     }
   }
+
 
 }

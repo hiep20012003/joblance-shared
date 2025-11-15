@@ -1,25 +1,4 @@
-export enum ErrorCode {
-  BAD_REQUEST = 'BAD_REQUEST',
-  VALIDATION_ERROR = 'VALIDATION_ERROR',
-  RESOURCE_CONFLICT = 'RESOURCE_CONFLICT',
-  TOO_MANY_REQUESTS = 'TOO_MANY_REQUESTS',
-  NOT_FOUND = 'NOT_FOUND',
-  FORBIDDEN = 'FORBIDDEN',
-  UNAUTHORIZED = 'UNAUTHORIZED',
-  AUTHENTICATION_FAILED = 'AUTHENTICATION_FAILED',
-  FILE_TOO_LARGE = 'FILE_TOO_LARGE',
-  UNSUPPORTED_MEDIA_TYPE = 'UNSUPPORTED_MEDIA_TYPE',
-  TIMEOUT = 'TIMEOUT',
-  INTERNAL_SERVER_ERROR = 'INTERNAL_SERVER_ERROR',
-  SERVICE_UNAVAILABLE = 'SERVICE_UNAVAILABLE',
-  DEPENDENCY_UNAVAILABLE = 'DEPENDENCY_UNAVAILABLE',
-  DEPENDENCY_ERROR = 'DEPENDENCY_ERROR',
-  NOT_IMPLEMENTED = 'NOT_IMPLEMENTED',
-  UNPROCESSABLE_ENTITY = 'UNPROCESSABLE_ENTITY',
-  EMAIL_NOT_VERIFIED = 'EMAIL_NOT_VERIFIED',
-  TOKEN_INVALID = 'TOKEN_INVALID',
-  TOKEN_EXPIRED = 'TOKEN_EXPIRED',
-}
+import { ErrorCode } from '../../common';
 
 export interface ErrorOptions {
   clientMessage?: string;
@@ -30,6 +9,7 @@ export interface ErrorOptions {
   operation?: string
   cause?: unknown;
   context?: unknown;
+  error?: unknown;
 }
 
 export abstract class ApplicationError extends Error {
@@ -41,6 +21,7 @@ export abstract class ApplicationError extends Error {
   operation?: string;
   cause?: unknown;
   context?: unknown;
+  error?: unknown;
 
   constructor(options: ErrorOptions) {
     super(options.logMessage ?? options.clientMessage);
@@ -50,6 +31,7 @@ export abstract class ApplicationError extends Error {
     this.operation = options.operation ?? 'unknown';
     this.cause = options.cause;
     this.context = options.context;
+    this.error = options.error;
     Object.setPrototypeOf(this, new.target.prototype);
   }
 
@@ -78,6 +60,7 @@ export abstract class ApplicationError extends Error {
       errorCode: this.errorCode,
       operation: this.operation,
       context: this.context,
+      error: this.error,
       cause: this.serializeCause(this.cause),
     };
     return serialized;
@@ -89,6 +72,7 @@ export abstract class ApplicationError extends Error {
       statusCode: this.statusCode,
       errorCode: this.errorCode,
       reasonPhrase: this.reasonPhrase,
+      error: this.error
     };
   }
 }

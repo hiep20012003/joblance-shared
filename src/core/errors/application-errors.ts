@@ -1,6 +1,7 @@
 import { ReasonPhrases, StatusCodes } from 'http-status-codes';
 
-import { ApplicationError, ErrorOptions, ErrorCode } from './base-error';
+import { ApplicationError, ErrorOptions} from './base-error';
+import { ErrorCode } from '../../common';
 
 export class BadRequestError extends ApplicationError {
   statusCode = StatusCodes.BAD_REQUEST;
@@ -15,6 +16,7 @@ export class BadRequestError extends ApplicationError {
       operation: options?.operation ?? 'http-bad-request',
       context: options?.context,
       cause: options?.cause,
+      error: options?.error,
     });
   }
 }
@@ -32,6 +34,7 @@ export class ValidationError extends ApplicationError {
       operation: options?.operation ?? 'validation-error',
       context: options?.context,
       cause: options?.cause,
+      error: options?.error,
     });
   }
 }
@@ -49,6 +52,25 @@ export class ConflictError extends ApplicationError {
       operation: options?.operation ?? 'resource-conflict',
       context: options?.context,
       cause: options?.cause,
+      error: options?.error,
+    });
+  }
+}
+
+export class CooldownError extends ApplicationError {
+  statusCode = StatusCodes.CONFLICT;
+  reasonPhrase = ReasonPhrases.CONFLICT;
+
+  status = 'fail' as const;
+  constructor(options?: Partial<ErrorOptions>) {
+    super({
+      clientMessage: options?.clientMessage ?? 'cooldown',
+      logMessage: options?.logMessage,
+      errorCode: options?.errorCode ?? ErrorCode.COOLDOWN,
+      operation: options?.operation ?? 'cooldown',
+      context: options?.context,
+      cause: options?.cause,
+      error: options?.error,
     });
   }
 }
@@ -66,6 +88,7 @@ export class TooManyRequestsError extends ApplicationError {
       operation: options?.operation ?? 'too-many-requests',
       context: options?.context,
       cause: options?.cause,
+      error: options?.error,
     });
   }
 }
@@ -83,6 +106,7 @@ export class NotFoundError extends ApplicationError {
       operation: options?.operation ?? 'resource-not-found',
       context: options?.context,
       cause: options?.cause,
+      error: options?.error,
     });
   }
 }
@@ -100,6 +124,7 @@ export class ForbiddenError extends ApplicationError {
       operation: options?.operation ?? 'access-forbidden',
       context: options?.context,
       cause: options?.cause,
+      error: options?.error,
     });
   }
 }
@@ -117,6 +142,7 @@ export class UnauthorizedError extends ApplicationError {
       operation: options?.operation ?? 'unauthorized',
       context: options?.context,
       cause: options?.cause,
+      error: options?.error,
     });
   }
 }
@@ -133,6 +159,7 @@ export class AuthenticationFailedError extends ApplicationError {
       operation: options?.operation ?? 'authentication-failed',
       context: options?.context,
       cause: options?.cause,
+      error: options?.error,
     });
   }
 }
@@ -151,6 +178,7 @@ export class TimeoutError extends ApplicationError {
       operation: options?.operation ?? 'request-timeout',
       context: options?.context,
       cause: options?.cause,
+      error: options?.error,
     });
   }
 }
@@ -169,6 +197,7 @@ export class EmailNotVerifiedError extends ApplicationError {
       operation: options?.operation ?? 'email-not-verified',
       context: options?.context,
       cause: options?.cause,
+      error: options?.error,
     });
   }
 }
@@ -187,6 +216,7 @@ export class NotImplementedError extends ApplicationError {
       operation: options?.operation ?? 'not-implemented',
       context: options?.context,
       cause: options?.cause,
+      error: options?.error,
     });
   }
 }
@@ -204,6 +234,7 @@ export class ServerError extends ApplicationError {
       operation: options?.operation ?? 'internal-server-error',
       context: options?.context,
       cause: options?.cause,
+      error: options?.error,
     });
   }
 }
@@ -221,6 +252,7 @@ export class DependencyError extends ApplicationError {
       operation: options?.operation ?? 'dependency-unavailable',
       context: options?.context,
       cause: options?.cause,
+      error: options?.error,
     });
   }
 }
@@ -238,9 +270,29 @@ export class FileTooLargeError extends ApplicationError {
       operation: options?.operation ?? 'file-too-large',
       context: options?.context,
       cause: options?.cause,
+      error: options?.error,
     });
   }
 }
+
+export class UploadFileError extends ApplicationError {
+  statusCode = StatusCodes.BAD_REQUEST;
+  reasonPhrase = ReasonPhrases.BAD_REQUEST;
+
+  status = 'fail' as const;
+  constructor(options?: Partial<ErrorOptions>) {
+    super({
+      clientMessage: options?.clientMessage ?? 'Upload File Error',
+      logMessage: options?.logMessage,
+      errorCode: options?.errorCode ?? ErrorCode.BAD_REQUEST,
+      operation: options?.operation ?? 'upload-error',
+      context: options?.context,
+      cause: options?.cause,
+      error: options?.error,
+    });
+  }
+}
+
 
 export class UnsupportedMediaTypeError extends ApplicationError {
   statusCode = StatusCodes.UNSUPPORTED_MEDIA_TYPE;
@@ -255,6 +307,7 @@ export class UnsupportedMediaTypeError extends ApplicationError {
       operation: options?.operation ?? 'unsupported-media-type',
       context: options?.context,
       cause: options?.cause,
+      error: options?.error,
     });
   }
 }
@@ -272,17 +325,30 @@ export class UnprocessableEntityError extends ApplicationError {
       operation: options?.operation ?? 'unprocessable-entity',
       context: options?.context,
       cause: options?.cause,
+      error: options?.error,
     });
   }
 }
 
-export class JsonWebTokenError extends AuthenticationFailedError {
+export class InvalidTokenError extends AuthenticationFailedError {
   constructor(options?: Partial<ErrorOptions>) {
     super({
       clientMessage: options?.clientMessage ?? 'Invalid token',
       logMessage: options?.logMessage,
       errorCode: options?.errorCode ?? ErrorCode.TOKEN_INVALID,
-      operation: options?.operation ?? 'jwt-error',
+      operation: options?.operation ?? 'token-error',
+      context: options?.context,
+      cause: options?.cause
+    });
+  }
+}
+export class ExpiredTokenError extends AuthenticationFailedError {
+  constructor(options?: Partial<ErrorOptions>) {
+    super({
+      clientMessage: options?.clientMessage ?? 'Invalid token',
+      logMessage: options?.logMessage,
+      errorCode: options?.errorCode ?? ErrorCode.TOKEN_EXPIRED,
+      operation: options?.operation ?? 'token-expired',
       context: options?.context,
       cause: options?.cause
     });

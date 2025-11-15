@@ -1,10 +1,13 @@
-import { MessageQueueType } from "../../core";
+import {MessageQueueType, ReviewType} from '../constants/constants';
+import {INotificationDocument} from './notification';
 
-export interface IReviewMessage {
+export interface IReviewMessageQueue {
   type: MessageQueueType;
+  notification?: INotificationDocument;
   gigId?: string;
+  reviewId?: string;
   reviewerId?: string;
-  sellerId?: string;
+  targetId?: string;
   review?: string;
   rating?: number;
   orderId?: string;
@@ -20,18 +23,21 @@ export interface IReviewerObjectKeys {
 }
 
 export interface IReviewDocument {
-  _id?: string;
+  id: string;
+  orderId: string;
   gigId: string;
   reviewerId: string;
-  sellerId: string;
-  review: string;
-  reviewerImage: string;
-  rating: number;
-  orderId: string;
-  createdAt: Date | string;
   reviewerUsername: string;
-  country: string;
-  reviewType?: MessageQueueType;
+  targetId: string;
+  targetUsername: string;
+  review: string;
+  rating: number;
+  createdAt: Date | string;
+  reply?: string;
+  reviewType?: ReviewType;
+  isPublic: boolean;
+
+  [key: string]: any;
 }
 
 export interface IRatingCategoryItem {

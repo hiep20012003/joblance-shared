@@ -1,223 +1,161 @@
-import util from 'util';
-
-import { Request } from 'express';
-import winston, { format, createLogger } from 'winston';
-
+import winston, {format, createLogger} from 'winston';
 import 'winston-daily-rotate-file';
-import { ApplicationError } from '../errors';
+import {ecsFormat} from '@elastic/ecs-winston-format';
 
 export interface LogMetadata {
   [key: string]: unknown;
 }
 
 export interface LogParams {
-  operation: string;
-  req?: Request;
+  operation?: string;
+  traceparent?: string;
   context?: unknown;
   metadata?: unknown;
   error?: unknown;
+  req?: unknown;
+  res?: unknown;
 }
+
+type LogVariant = 'short' | 'full';
 
 export class Logger {
   private readonly logger: ReturnType<typeof createLogger>;
   private readonly serviceName: string;
+  private readonly isDev: boolean;
+  private readonly logEnabled: boolean;
+  private readonly logVariant: LogVariant;
 
   constructor(serviceName: string) {
     this.serviceName = serviceName;
-
-    const consoleFormat = winston.format.printf((info) => {
-      const colorizer = winston.format.colorize();
-      const {
-        level,
-        message,
-        timestamp,
-        metadata,
-        context,
-        error,
-        operation,
-        traceId,
-        clientId,
-        url,
-        method
-      } = info as any;
-
-      const coloredTimestampAndLevel = colorizer.colorize(
-        level,
-        `${timestamp} [${level.toUpperCase()}]:`
-      );
-
-      const messageStr =
-        typeof message === "string"
-          ? message
-          : util.inspect(message, { colors: true, depth: null, compact: false });
-
-      const objectsToLog = this.cleanObject({
-        url,
-        method,
-        metadata,
-        context,
-        error,
-        operation,
-        traceId,
-        clientId
-      });
-
-      const syntaxHighlightedObjects =
-        objectsToLog && Object.keys(objectsToLog).length > 0
-          ? "\n" + util.inspect(objectsToLog, { colors: true, depth: null, compact: false })
-          : "";
-
-      return `${coloredTimestampAndLevel} ${messageStr}${syntaxHighlightedObjects}`;
-    });
-
+    this.isDev = (process.env.ENVIROMENT || 'development') === 'development';
+    this.logEnabled = process.env.LOG_ENABLED !== 'false'; // bật/tắt log console
+    this.logVariant = (process.env.LOG_VARIANT as LogVariant) || 'full'; // 'short' hoặc 'full'
 
     this.logger = createLogger({
-      format: format.combine(
-        format.timestamp({
-          format: `YYYY-MM-DD hh:mm:ss.SSS`,
-        }),
-        format.json()
-      ),
-      defaultMeta: {
-        service: this.serviceName,
-        env: process.env.ENVIRONMENT || 'development'
-      },
+      level: 'info',
+      format: ecsFormat({
+        serviceName: this.serviceName,
+        serviceEnvironment: process.env.ENVIROMENT || 'development',
+        apmIntegration: true,
+        convertErr: true,
+        convertReqRes: true
+      }),
       transports: [
+        // Console transport
         new winston.transports.Console({
-          format: consoleFormat
+          silent: !this.logEnabled,
+          format: this.consoleFormat()
         }),
+
+        // File: info
         new winston.transports.DailyRotateFile({
           dirname: 'logs/info',
           filename: `application-${this.serviceName}-%DATE%.info.log`,
-          datePattern: 'YYYY-MM-DD-HH-mm',
+          datePattern: 'YYYY-MM-DD',
           zippedArchive: true,
-          maxSize: '1m',
+          maxSize: '100m',
           maxFiles: '14d',
           level: 'info',
+          format: ecsFormat({
+            serviceName: this.serviceName,
+            serviceEnvironment: process.env.ENVIROMENT || 'development',
+            apmIntegration: true,
+            convertErr: true,
+            convertReqRes: true
+          })
         }),
+
+        // File: error
         new winston.transports.DailyRotateFile({
           dirname: 'logs/error',
           filename: `application-${this.serviceName}-%DATE%.error.log`,
-          datePattern: 'YYYY-MM-DD-HH-mm',
+          datePattern: 'YYYY-MM-DD',
           zippedArchive: true,
-          maxSize: '20m',
-          maxFiles: '1d',
+          maxSize: '200m',
+          maxFiles: '30d',
           level: 'error',
-        }),
-      ],
+          format: ecsFormat({
+            serviceName: this.serviceName,
+            serviceEnvironment: process.env.ENVIROMENT || 'development',
+            apmIntegration: true,
+            convertErr: true,
+            convertReqRes: true
+          })
+        })
+      ]
     });
   }
 
-  private cleanObject(obj?: unknown): Record<string, unknown> | undefined {
-    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return undefined;
-    return Object.fromEntries(
-      Object.entries(obj as Record<string, unknown>)
-        .filter(([_, v]) =>
-          v !== undefined &&
-        v !== null &&
-        !(typeof v === 'object' && v !== null && Object.keys(v).length === 0)
-        )
-    );
-  }
-
-
-  private cleanError(error?: unknown): unknown {
-    if (!error) return undefined;
-
-    if (error instanceof Error) {
-      if ('serialize' in error && typeof (error as ApplicationError).serialize === 'function') {
-        const serialized = (error as ApplicationError).serialize();
-        return this.cleanObject(serialized);
-      }
-
-      return {
-        name: error.name,
-        message: error.message,
-        stack: error.stack
-      };
+  private consoleFormat() {
+    // Nếu logVariant = 'short' → chỉ in message + timestamp ngắn gọn
+    if (this.logVariant === 'short') {
+      return format.combine(
+        format.timestamp({format: 'HH:mm:ss'}),
+        format.printf(({level, message, timestamp}) => `[${timestamp}] ${level.toUpperCase()}: ${message}`)
+      );
     }
 
-    if (typeof error === 'object') {
-      return this.cleanObject(error as Record<string, unknown>);
-    }
-
-    return error;
+    // full → pretty print đầy đủ
+    return this.isDev
+      ? format.combine(
+        format.timestamp({format: 'YYYY-MM-DD HH:mm:ss.SSS'}),
+        format.errors({stack: true}),
+        format.splat(),
+        format.prettyPrint()
+      )
+      : ecsFormat({
+        serviceName: this.serviceName,
+        serviceEnvironment: process.env.ENVIROMENT || 'development',
+        apmIntegration: true,
+        convertErr: true,
+        convertReqRes: true
+      });
   }
-
 
   private commonParams(params: LogParams) {
-    const { context, req, metadata, error, operation } = params;
+    const {context, metadata, error, operation, req, res, traceparent} = params;
 
-    const cleanedMetadata = this.cleanObject(metadata);
-    const cleanedContext = this.cleanObject(context as Record<string, unknown>);
-    const cleanedError = this.cleanError(error);
+    const payload: Record<string, unknown> = {operation};
+    const [, traceId, spanId] = (traceparent ?? '').split('-');
 
-    const traceId = req?.traceContext?.traceId ?? 'unknown';
-    const clientId = req?.headers['x-forwarded-for']?.toString().split(',')[0] || req?.ip || 'unknown';
-    const url = req?.originalUrl;
-    const method = req?.method;
-
-    const payload: Record<string, unknown> = {
-      operation,
-      traceId,
-      clientId,
-      url,
-      method,
-    };
-
-    // Build flat metadata correctly
-    if (cleanedMetadata) {
-      const flatMetadata: Record<string, unknown> = {};
-
-      // If nested `metadata.metadata`, flatten it into `metadata`
-      if ('metadata' in cleanedMetadata && typeof cleanedMetadata.metadata === 'object') {
-        Object.assign(flatMetadata, cleanedMetadata.metadata as Record<string, unknown>);
-      }
-
-      // // Move `message` to `responseMessage` if exists
-      // if ('message' in cleanedMetadata) {
-      //   flatMetadata.responseMessage = cleanedMetadata.message;
-      // }
-
-      // Other top-level keys stay
-      for (const [key, value] of Object.entries(cleanedMetadata)) {
-        if (key !== 'metadata' && key !== 'message') {
-          flatMetadata[key] = value;
-        }
-      }
-
-      payload.metadata = flatMetadata;
-    }
-
-    if (cleanedContext) {
-      payload.context = cleanedContext;
-    }
-    if (cleanedError) {
-      payload.error = cleanedError;
-    }
+    if (context) payload.context = context;
+    if (metadata) payload.metadata = metadata;
+    if (error) payload.error = error;
+    if (traceId) payload['trace.id'] = traceId;
+    if (spanId) payload['span.id'] = spanId;
+    if (req && typeof req === 'object') payload.req = this.sanitizeRequest(req);
+    if (res && typeof res === 'object') payload.res = this.sanitizeResponse(res);
 
     return payload;
   }
 
-
-  info(message: string, params: LogParams) {
-    const logObject = Object.assign(
-      { message }, this.commonParams(params)
-    );
-    this.logger.info(logObject);
+  private sanitizeRequest(req: any) {
+    return {
+      method: req.method,
+      url: req.url,
+      ip: req.ip ?? req.connection?.remoteAddress
+    };
   }
 
-  error(message: string, params: LogParams) {
-    const logObject = Object.assign(
-      { message }, this.commonParams(params)
-    );
-    this.logger.error(logObject);
+  private sanitizeResponse(res: any) {
+    return {
+      message: res.message,
+      statusCode: res.statusCode
+    };
   }
 
-  warn(message: string, params: LogParams) {
-    const logObject = Object.assign(
-      { message }, this.commonParams(params)
-    );
-    this.logger.warn(logObject);
+  info(message: string, params: LogParams = {}) {
+    if (!this.logger.isLevelEnabled('info')) return;
+    this.logger.info({message, ...this.commonParams(params)});
+  }
+
+  warn(message: string, params: LogParams = {}) {
+    if (!this.logger.isLevelEnabled('warn')) return;
+    this.logger.warn({message, ...this.commonParams(params)});
+  }
+
+  error(message: string, params: LogParams = {}) {
+    if (!this.logger.isLevelEnabled('error')) return;
+    this.logger.error({message, ...this.commonParams(params)});
   }
 }
