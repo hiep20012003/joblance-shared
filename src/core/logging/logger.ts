@@ -8,12 +8,11 @@ export interface LogMetadata {
 
 export interface LogParams {
   operation?: string;
-  traceparent?: string;
   context?: unknown;
   metadata?: unknown;
   error?: unknown;
-  req?: unknown;
-  res?: unknown;
+  req?: any;
+  res?: any;
 }
 
 type LogVariant = 'short' | 'full';
@@ -113,16 +112,13 @@ export class Logger {
   }
 
   private commonParams(params: LogParams) {
-    const {context, metadata, error, operation, req, res, traceparent} = params;
+    const {context, metadata, error, operation, req, res} = params;
 
     const payload: Record<string, unknown> = {operation};
-    const [, traceId, spanId] = (traceparent ?? '').split('-');
 
     if (context) payload.context = context;
     if (metadata) payload.metadata = metadata;
     if (error) payload.error = error;
-    if (traceId) payload['trace.id'] = traceId;
-    if (spanId) payload['span.id'] = spanId;
     if (req && typeof req === 'object') payload.req = this.sanitizeRequest(req);
     if (res && typeof res === 'object') payload.res = this.sanitizeResponse(res);
 
