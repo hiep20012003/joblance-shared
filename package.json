@@ -1,6 +1,6 @@
 {
   "name": "@hiep20012003/joblance-shared",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Helpers library for Joblance app",
   "license": "MIT",
   "author": "Nguyen Dung Hiep",
@@ -64,6 +64,6 @@
     "uuid": "^11.1.0",
     "winston": "^3.17.0",
     "winston-daily-rotate-file": "^5.0.0",
-    "zod": "^4.1.8"
+    "zod": "4.1.8"
   }
 }

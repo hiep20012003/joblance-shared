@@ -4,7 +4,6 @@ import {BadRequestError} from '../../core';
 
 export const validate = (schema: any) => (req: Request, _res: Response, next: NextFunction) => {
   const result = schema.safeParse(req.body);
-  console.log(req.body);
 
   if (!result.success) {
     const flattened = z.flattenError(result.error);
