@@ -757,33 +757,50 @@ export const CHAT_FILE_ALLOWED_MIMES = {
   images: [
     'image/jpeg',
     'image/png',
-    'image/gif',
     'image/webp',
+    'image/gif',
     'image/svg+xml',
+    'image/bmp',
+    'image/tiff'
   ],
   videos: [
     'video/mp4',
     'video/webm',
     'video/quicktime'
   ],
+  audio: [
+    'audio/mp3',
+    'audio/mpeg',
+    'audio/wav',
+    'audio/ogg'
+  ],
   documents: [
     'application/pdf',
+    'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'text/plain'
   ],
   archives: [
     'application/zip',
+    'application/x-zip-compressed',
     'application/x-rar-compressed',
     'application/x-7z-compressed',
     'application/gzip'
+  ],
+  raw: [
+    'application/octet-stream' // fallback cho project file đặc thù (psd, ai, fig, blend, cad…)
   ]
 };
 
 // union
 export const ALL_CHAT_FILE_ALLOWED_MIMES = [
-  ...CHAT_FILE_ALLOWED_MIMES.images,
   ...CHAT_FILE_ALLOWED_MIMES.videos,
+  ...CHAT_FILE_ALLOWED_MIMES.images,
+  ...CHAT_FILE_ALLOWED_MIMES.audio,
   ...CHAT_FILE_ALLOWED_MIMES.documents,
   ...CHAT_FILE_ALLOWED_MIMES.archives
 ];
