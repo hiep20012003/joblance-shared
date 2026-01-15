@@ -805,7 +805,8 @@ export const gigDeliveryAllowedMimes = {
     'video/quicktime'
   ],
   audio: [
-    'audio/mpeg',    // mp3
+    'audio/mp3',
+    'audio/mpeg',
     'audio/wav',
     'audio/ogg'
   ],
